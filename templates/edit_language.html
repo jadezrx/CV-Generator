@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modifier la langue</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <h1>Modifier la langue</h1>
+  <p class="page-sub">{{ language.language_name or "" }}{% if language.level %} · {{ language.level }}{% endif %}</p>
+
+  <div class="card">
+    <form action="/languages/{{ language.id }}/update" method="post">
+      <div class="form-grid two">
+        <div class="field"><label>Langue</label><input name="language_name" value="{{ language.language_name or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Niveau</label>
+          <select name="level">
+            <option value="" {% if not language.level %}selected{% endif %}></option>
+            {% for option in ["Courant", "Avancé", "Intermédiaire", "Débutant"] %}
+            <option value="{{ option }}" {% if language.level == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn-add">Enregistrer</button>
+    </form>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem">
+    <a href="/" style="display:inline-block;padding:0.9rem 2.5rem;background:#2e2e2e;color:#fff;border-radius:10px;font-family:var(--font);font-size:0.9rem;text-decoration:none">
+      ← Retour au portfolio
+    </a>
+  </div>
+
+</body>
+</html>

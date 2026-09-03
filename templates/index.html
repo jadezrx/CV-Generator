@@ -104,6 +104,7 @@
       <span class="pf-tag">
         {{ lang.language_name }}
         <span class="pf-tag-level">{{ lang.level }}</span>
+        <a href="/languages/{{ lang.id }}/edit" class="btn-edit-tag" title="Modifier">✎</a>
         <form action="/languages/{{ lang.id }}/delete" method="post">
           <button type="submit" class="btn-delete-tag">x</button>
         </form>

@@ -341,9 +341,41 @@ def delete_skill(item_id: int, session: SessionDep):
     return RedirectResponse(url="/", status_code=303)
 
 
+def get_language_or_404(item_id: int, session: Session) -> Language:
+    language = session.get(Language, item_id)
+    if language is None:
+        raise HTTPException(status_code=404, detail="Language not found")
+    return language
+
+
+@app.get("/languages/{item_id}/edit", response_class=HTMLResponse)
+def edit_language_form(item_id: int, request: Request, session: SessionDep):
+    language = get_language_or_404(item_id, session)
+    return templates.TemplateResponse(
+        request,
+        "edit_language.html",
+        context={"language": language},
+    )
+
+
+@app.post("/languages/{item_id}/update")
+def update_language(
+    item_id: int,
+    language_name: str | None = Form(None),
+    level: str | None = Form(None),
+    session: SessionDep = None,
+):
+    language = get_language_or_404(item_id, session)
+    language.language_name = language_name
+    language.level = level
+    session.add(language)
+    session.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/languages/{item_id}/delete")
 def delete_language(item_id: int, session: SessionDep):
-    item = session.get(Language, item_id)
+    item = get_language_or_404(item_id, session)
     session.delete(item)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
