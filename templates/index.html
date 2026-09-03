@@ -41,6 +41,7 @@
         <span class="pf-entry-title">{{ exp.position }}</span>
         <div class="pf-btn-delete">
           <span class="pf-entry-dates">{{ exp.start_date }} – {{ exp.end_date }}</span>
+          <a href="/professional_experience/{{ exp.id }}/edit" class="btn-edit">Modifier</a>
           <form action="/professional_experience/{{ exp.id }}/delete" method="post">
             <button type="submit" class="btn-delete">Supprimer</button>
           </form>

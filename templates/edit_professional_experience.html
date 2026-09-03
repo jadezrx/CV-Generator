@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modifier l'expérience</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <h1>Modifier l'expérience</h1>
+  <p class="page-sub">{{ experience.position or "" }}{% if experience.company %} · {{ experience.company }}{% endif %}</p>
+
+  <div class="card">
+    <form action="/professional_experience/{{ experience.id }}/update" method="post">
+      <div class="form-grid two">
+        <div class="field"><label>Poste</label><input name="position" value="{{ experience.position or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Entreprise</label><input name="company" value="{{ experience.company or '' }}" placeholder=" "/></div>
+      </div>
+      <div class="form-grid two" style="margin-top:1rem">
+        <div class="field"><label>Début</label><input name="start_date" type="number" value="{{ experience.start_date if experience.start_date is not none else '' }}" placeholder="2022"/></div>
+        <div class="field"><label>Fin</label><input name="end_date" type="number" value="{{ experience.end_date if experience.end_date is not none else '' }}" placeholder="2024"/></div>
+      </div>
+      <div class="form-grid" style="margin-top:1rem">
+        <div class="field"><label>Description</label><textarea name="description" rows="4" placeholder=" ">{{ experience.description or '' }}</textarea></div>
+      </div>
+      <button type="submit" class="btn-add">Enregistrer</button>
+    </form>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem">
+    <a href="/" style="display:inline-block;padding:0.9rem 2.5rem;background:#2e2e2e;color:#fff;border-radius:10px;font-family:var(--font);font-size:0.9rem;text-decoration:none">
+      ← Retour au portfolio
+    </a>
+  </div>
+
+</body>
+</html>

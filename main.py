@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, HTTPException, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -205,6 +205,44 @@ def read_home(request: Request, session: SessionDep):
 def delete_info(item_id: int, session: SessionDep):
     item = session.get(Info, item_id)
     session.delete(item)
+    session.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
+def get_experience_or_404(item_id: int, session: Session) -> ProfessionalExperience:
+    experience = session.get(ProfessionalExperience, item_id)
+    if experience is None:
+        raise HTTPException(status_code=404, detail="Professional experience not found")
+    return experience
+
+
+@app.get("/professional_experience/{item_id}/edit", response_class=HTMLResponse)
+def edit_experience_form(item_id: int, request: Request, session: SessionDep):
+    experience = get_experience_or_404(item_id, session)
+    return templates.TemplateResponse(
+        request,
+        "edit_professional_experience.html",
+        context={"experience": experience},
+    )
+
+
+@app.post("/professional_experience/{item_id}/update")
+def update_experience(
+    item_id: int,
+    company: str | None = Form(None),
+    position: str | None = Form(None),
+    start_date: int | None = Form(None),
+    end_date: int | None = Form(None),
+    description: str | None = Form(None),
+    session: SessionDep = None,
+):
+    experience = get_experience_or_404(item_id, session)
+    experience.company = company
+    experience.position = position
+    experience.start_date = start_date
+    experience.end_date = end_date
+    experience.description = description
+    session.add(experience)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
 

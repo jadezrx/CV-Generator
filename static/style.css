@@ -342,6 +342,25 @@ select option { background: var(--input-bg); }
   color: #e05555;
 }
 
+/* ── Bouton modifier (entrées) ── */
+.btn-edit {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: var(--label);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-edit:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
 /* ── Bouton supprimer (tags skills/langues) ── */
 .btn-delete-tag {
   background: none;
