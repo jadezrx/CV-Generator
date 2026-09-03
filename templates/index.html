@@ -64,6 +64,7 @@
         <span class="pf-entry-title">{{ edu.school }}</span>
         <div class="pf-btn-delete">
           <span class="pf-entry-dates">{{ edu.start_year }} – {{ edu.end_year }}</span>
+          <a href="/education/{{ edu.id }}/edit" class="btn-edit">Modifier</a>
           <form action="/education/{{ edu.id }}/delete" method="post">
         <button type="submit" class="btn-delete">Supprimer</button>
       </form>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modifier la formation</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <h1>Modifier la formation</h1>
+  <p class="page-sub">{{ education.school or "" }}{% if education.degree %} · {{ education.degree }}{% endif %}</p>
+
+  <div class="card">
+    <form action="/education/{{ education.id }}/update" method="post">
+      <div class="form-grid two">
+        <div class="field"><label>École</label><input name="school" value="{{ education.school or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Diplôme</label><input name="degree" value="{{ education.degree or '' }}" placeholder=" "/></div>
+      </div>
+      <div class="form-grid two" style="margin-top:1rem">
+        <div class="field"><label>Début</label><input name="start_year" type="number" value="{{ education.start_year if education.start_year is not none else '' }}" placeholder="2018"/></div>
+        <div class="field"><label>Fin</label><input name="end_year" type="number" value="{{ education.end_year if education.end_year is not none else '' }}" placeholder="2022"/></div>
+      </div>
+      <div class="form-grid" style="margin-top:1rem">
+        <div class="field"><label>Domaine d'étude</label><input name="field_of_study" value="{{ education.field_of_study or '' }}" placeholder=" "/></div>
+      </div>
+      <button type="submit" class="btn-add">Enregistrer</button>
+    </form>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem">
+    <a href="/" style="display:inline-block;padding:0.9rem 2.5rem;background:#2e2e2e;color:#fff;border-radius:10px;font-family:var(--font);font-size:0.9rem;text-decoration:none">
+      ← Retour au portfolio
+    </a>
+  </div>
+
+</body>
+</html>

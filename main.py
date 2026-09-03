@@ -255,9 +255,47 @@ def delete_experience(item_id: int, session: SessionDep):
     return RedirectResponse(url="/", status_code=303)
 
 
-@app.delete("/education/{item_id}")
+def get_education_or_404(item_id: int, session: Session) -> Education:
+    education = session.get(Education, item_id)
+    if education is None:
+        raise HTTPException(status_code=404, detail="Education not found")
+    return education
+
+
+@app.get("/education/{item_id}/edit", response_class=HTMLResponse)
+def edit_education_form(item_id: int, request: Request, session: SessionDep):
+    education = get_education_or_404(item_id, session)
+    return templates.TemplateResponse(
+        request,
+        "edit_education.html",
+        context={"education": education},
+    )
+
+
+@app.post("/education/{item_id}/update")
+def update_education(
+    item_id: int,
+    school: str | None = Form(None),
+    degree: str | None = Form(None),
+    field_of_study: str | None = Form(None),
+    start_year: int | None = Form(None),
+    end_year: int | None = Form(None),
+    session: SessionDep = None,
+):
+    education = get_education_or_404(item_id, session)
+    education.school = school
+    education.degree = degree
+    education.field_of_study = field_of_study
+    education.start_year = start_year
+    education.end_year = end_year
+    session.add(education)
+    session.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/education/{item_id}/delete")
 def delete_education(item_id: int, session: SessionDep):
-    item = session.get(Education, item_id)
+    item = get_education_or_404(item_id, session)
     session.delete(item)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
