@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modifier la compétence</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <h1>Modifier la compétence</h1>
+  <p class="page-sub">{{ skill.software or "" }}{% if skill.level %} · {{ skill.level }}{% endif %}</p>
+
+  <div class="card">
+    <form action="/skills/{{ skill.id }}/update" method="post">
+      <div class="form-grid two">
+        <div class="field"><label>Compétence</label><input name="software" value="{{ skill.software or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Niveau</label>
+          <select name="level">
+            <option value="" {% if not skill.level %}selected{% endif %}></option>
+            {% for option in ["Expert", "Avancé", "Intermédiaire", "Débutant"] %}
+            <option value="{{ option }}" {% if skill.level == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn-add">Enregistrer</button>
+    </form>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem">
+    <a href="/" style="display:inline-block;padding:0.9rem 2.5rem;background:#2e2e2e;color:#fff;border-radius:10px;font-family:var(--font);font-size:0.9rem;text-decoration:none">
+      ← Retour au portfolio
+    </a>
+  </div>
+
+</body>
+</html>

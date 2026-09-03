@@ -85,6 +85,7 @@
       <span class="pf-tag">
         {{ skill.software }}
         <span class="pf-tag-level">{{ skill.level }}</span>
+        <a href="/skills/{{ skill.id }}/edit" class="btn-edit-tag" title="Modifier">✎</a>
         <form action="/skills/{{ skill.id }}/delete" method="post">
           <button type="submit" class="btn-delete-tag">x</button>
         </form>

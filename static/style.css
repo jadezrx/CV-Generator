@@ -361,18 +361,22 @@ select option { background: var(--input-bg); }
   color: var(--blue);
 }
 
-/* ── Bouton supprimer (tags skills/langues) ── */
-.btn-delete-tag {
+/* ── Boutons modifier/supprimer (tags skills/langues) ── */
+.btn-delete-tag,
+.btn-edit-tag {
   background: none;
   border: none;
   color: var(--blue);
-  font-size: 0.9rem;
   cursor: pointer;
   padding: 0 0 0 0.2rem;
   line-height: 1;
   opacity: 0.6;
+  text-decoration: none;
 }
+.btn-delete-tag { font-size: 0.9rem; }
+.btn-edit-tag { font-size: 0.85rem; }
 .btn-delete-tag:hover { opacity: 1; color: #e05555; }
+.btn-edit-tag:hover { opacity: 1; }
 
 
 .pf-btn-delete { 

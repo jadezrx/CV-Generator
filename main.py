@@ -301,9 +301,41 @@ def delete_education(item_id: int, session: SessionDep):
     return RedirectResponse(url="/", status_code=303)
 
 
+def get_skill_or_404(item_id: int, session: Session) -> Skill:
+    skill = session.get(Skill, item_id)
+    if skill is None:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return skill
+
+
+@app.get("/skills/{item_id}/edit", response_class=HTMLResponse)
+def edit_skill_form(item_id: int, request: Request, session: SessionDep):
+    skill = get_skill_or_404(item_id, session)
+    return templates.TemplateResponse(
+        request,
+        "edit_skill.html",
+        context={"skill": skill},
+    )
+
+
+@app.post("/skills/{item_id}/update")
+def update_skill(
+    item_id: int,
+    software: str | None = Form(None),
+    level: str | None = Form(None),
+    session: SessionDep = None,
+):
+    skill = get_skill_or_404(item_id, session)
+    skill.software = software
+    skill.level = level
+    session.add(skill)
+    session.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/skills/{item_id}/delete")
 def delete_skill(item_id: int, session: SessionDep):
-    item = session.get(Skill, item_id)
+    item = get_skill_or_404(item_id, session)
     session.delete(item)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
