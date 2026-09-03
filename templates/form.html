@@ -16,15 +16,15 @@
     <h2>01 — Profil</h2>
     <form action="/info" method="post">
       <div class="form-grid two">
-        <div class="field"><label>Prénom</label><input name="first_name" placeholder=" "/></div>
-        <div class="field"><label>Nom</label><input name="last_name" placeholder=" "/></div>
-        <div class="field full"><label>Localisation</label><input name="location" placeholder=" "/></div>
-        <div class="field"><label>Phone</label><input name="phone" placeholder=" "/></div>
-        <div class="field"><label>Email</label><input name="email" placeholder=" "/></div>
-        <div class="field full"><label>GitHub</label><input name="github" placeholder=" "/></div>
-        <div class="field full"><label>LinkedIn</label><input name="linkedin" placeholder=" "/></div>
+        <div class="field"><label>Prénom</label><input name="first_name" value="{{ info.first_name or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Nom</label><input name="last_name" value="{{ info.last_name or '' }}" placeholder=" "/></div>
+        <div class="field full"><label>Localisation</label><input name="location" value="{{ info.location or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Phone</label><input name="phone" value="{{ info.phone or '' }}" placeholder=" "/></div>
+        <div class="field"><label>Email</label><input name="email" value="{{ info.email or '' }}" placeholder=" "/></div>
+        <div class="field full"><label>GitHub</label><input name="github" value="{{ info.github or '' }}" placeholder=" "/></div>
+        <div class="field full"><label>LinkedIn</label><input name="linkedin" value="{{ info.linkedin or '' }}" placeholder=" "/></div>
       </div>
-      <button type="submit" class="btn-add">+ Ajouter</button>
+      <button type="submit" class="btn-add">Enregistrer</button>
     </form>
   </div>
 

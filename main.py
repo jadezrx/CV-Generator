@@ -140,8 +140,21 @@ def create_language(
     return RedirectResponse(url="/form", status_code=303)
 
 
+def get_info_or_none(session: Session) -> Info | None:
+    # Deterministic pick if more than one Info row exists (e.g. legacy
+    # data from before this row became a singleton): the oldest one.
+    return session.exec(select(Info).order_by(Info.id)).first()
+
+
+def get_info_or_404(item_id: int, session: Session) -> Info:
+    info = session.get(Info, item_id)
+    if info is None:
+        raise HTTPException(status_code=404, detail="Info not found")
+    return info
+
+
 @app.post("/info")
-def create_info(
+def upsert_info(
     first_name: str | None = Form(None),
     last_name: str | None = Form(None),
     email: str | None = Form(None),
@@ -151,17 +164,19 @@ def create_info(
     github: str | None = Form(None),
     session: SessionDep = None,
 ):
-    session.add(
-        Info(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            phone=phone,
-            location=location,
-            linkedin=linkedin,
-            github=github,
-        )
-    )
+    # Info is a singleton (ADR-0002): update the existing row if one
+    # exists, otherwise create it. There is no {id}-scoped update route.
+    info = get_info_or_none(session)
+    if info is None:
+        info = Info()
+    info.first_name = first_name
+    info.last_name = last_name
+    info.email = email
+    info.phone = phone
+    info.location = location
+    info.linkedin = linkedin
+    info.github = github
+    session.add(info)
     session.commit()
     return RedirectResponse(url="/form", status_code=303)
 
@@ -179,8 +194,12 @@ def create_project(
 
 
 @app.get("/form", response_class=HTMLResponse)
-def read_form(request: Request):
-    return templates.TemplateResponse(request, "form.html", context={})
+def read_form(request: Request, session: SessionDep):
+    # Pre-fill the Info section with the current row's values (if any)
+    # so a resubmission via the /info upsert doesn't null out fields
+    # the owner didn't intentionally change (ADR-0002).
+    info = get_info_or_none(session)
+    return templates.TemplateResponse(request, "form.html", context={"info": info})
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -203,7 +222,7 @@ def read_home(request: Request, session: SessionDep):
 
 @app.post("/info/{item_id}/delete")
 def delete_info(item_id: int, session: SessionDep):
-    item = session.get(Info, item_id)
+    item = get_info_or_404(item_id, session)
     session.delete(item)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
