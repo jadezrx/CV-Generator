@@ -381,9 +381,43 @@ def delete_language(item_id: int, session: SessionDep):
     return RedirectResponse(url="/", status_code=303)
 
 
+def get_project_or_404(item_id: int, session: Session) -> Project:
+    project = session.get(Project, item_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@app.get("/projects/{item_id}/edit", response_class=HTMLResponse)
+def edit_project_form(item_id: int, request: Request, session: SessionDep):
+    project = get_project_or_404(item_id, session)
+    return templates.TemplateResponse(
+        request,
+        "edit_project.html",
+        context={"project": project},
+    )
+
+
+@app.post("/projects/{item_id}/update")
+def update_project(
+    item_id: int,
+    name_project: str | None = Form(None),
+    description: str | None = Form(None),
+    link: str | None = Form(None),
+    session: SessionDep = None,
+):
+    project = get_project_or_404(item_id, session)
+    project.name_project = name_project
+    project.description = description
+    project.link = link
+    session.add(project)
+    session.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/projects/{item_id}/delete")
 def delete_project(item_id: int, session: SessionDep):
-    item = session.get(Project, item_id)
+    item = get_project_or_404(item_id, session)
     session.delete(item)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
