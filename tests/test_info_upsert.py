@@ -98,6 +98,19 @@ def test_delete_for_nonexistent_id_returns_404_not_a_crash(client: TestClient):
     assert response.status_code == 404
 
 
+def test_delete_removes_the_row_and_redirects_to_manage(
+    client: TestClient, session: Session
+):
+    client.post("/info", data=_info_payload(), follow_redirects=False)
+    info_id = session.exec(select(Info)).all()[0].id
+
+    response = client.post(f"/info/{info_id}/delete", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/manage"
+    assert session.exec(select(Info)).all() == []
+
+
 def test_form_prefills_with_existing_info_values_after_save(client: TestClient):
     client.post("/info", data=_info_payload(), follow_redirects=False)
 

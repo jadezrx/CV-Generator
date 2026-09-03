@@ -59,7 +59,7 @@ def test_update_saves_changes_to_existing_row_and_redirects_to_portfolio(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/manage"
 
     # No new row was created: still exactly one row, now with updated values.
     rows = session.exec(select(Education)).all()
@@ -107,13 +107,24 @@ def test_update_for_nonexistent_id_returns_404_not_a_crash(client: TestClient):
     assert response.status_code == 404
 
 
-def test_modifier_link_visible_on_portfolio_view(client: TestClient, session: Session):
+def test_modifier_link_visible_on_manage_view(client: TestClient, session: Session):
+    education = _create_education(session)
+
+    response = client.get("/manage")
+
+    assert response.status_code == 200
+    assert f"/education/{education.id}/edit" in response.text
+
+
+def test_modifier_link_not_visible_on_public_portfolio_view(
+    client: TestClient, session: Session
+):
     education = _create_education(session)
 
     response = client.get("/")
 
     assert response.status_code == 200
-    assert f"/education/{education.id}/edit" in response.text
+    assert f"/education/{education.id}/edit" not in response.text
 
 
 def test_delete_removes_the_row_via_post(client: TestClient, session: Session):
@@ -125,7 +136,7 @@ def test_delete_removes_the_row_via_post(client: TestClient, session: Session):
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/manage"
     assert session.exec(select(Education)).all() == []
 
 

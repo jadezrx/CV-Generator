@@ -59,7 +59,7 @@ def test_update_saves_changes_to_existing_row_and_redirects_to_portfolio(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/manage"
 
     # No new row was created: still exactly one row, now with updated values.
     rows = session.exec(select(ProfessionalExperience)).all()
@@ -107,10 +107,44 @@ def test_update_for_nonexistent_id_returns_404_not_a_crash(client: TestClient):
     assert response.status_code == 404
 
 
-def test_modifier_link_visible_on_portfolio_view(client: TestClient, session: Session):
+def test_modifier_link_visible_on_manage_view(client: TestClient, session: Session):
+    experience = _create_experience(session)
+
+    response = client.get("/manage")
+
+    assert response.status_code == 200
+    assert f"/professional_experience/{experience.id}/edit" in response.text
+
+
+def test_modifier_link_not_visible_on_public_portfolio_view(
+    client: TestClient, session: Session
+):
     experience = _create_experience(session)
 
     response = client.get("/")
 
     assert response.status_code == 200
-    assert f"/professional_experience/{experience.id}/edit" in response.text
+    assert f"/professional_experience/{experience.id}/edit" not in response.text
+
+
+def test_delete_removes_the_row_via_post_and_redirects_to_manage(
+    client: TestClient, session: Session
+):
+    experience = _create_experience(session)
+
+    response = client.post(
+        f"/professional_experience/{experience.id}/delete",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/manage"
+    assert session.exec(select(ProfessionalExperience)).all() == []
+
+
+def test_delete_for_nonexistent_id_returns_404_not_a_crash(client: TestClient):
+    response = client.post(
+        "/professional_experience/999/delete", follow_redirects=False
+    )
+
+    assert response.status_code == 404

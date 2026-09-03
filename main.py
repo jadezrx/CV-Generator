@@ -202,21 +202,34 @@ def read_form(request: Request, session: SessionDep):
     return templates.TemplateResponse(request, "form.html", context={"info": info})
 
 
+def build_portfolio_context(session: Session) -> dict:
+    return {
+        "skills": session.exec(select(Skill)).all(),
+        "education": session.exec(select(Education)).all(),
+        "professional_experience": session.exec(
+            select(ProfessionalExperience)
+        ).all(),
+        "languages": session.exec(select(Language)).all(),
+        "info": session.exec(select(Info)).all(),
+        "projects": session.exec(select(Project)).all(),
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def read_home(request: Request, session: SessionDep):
+    # Public, read-only portfolio view (ADR-0001): no Modifier/Supprimer
+    # controls. Management of existing entries lives at /manage.
     return templates.TemplateResponse(
-        request,
-        "index.html",
-        context={
-            "skills": session.exec(select(Skill)).all(),
-            "education": session.exec(select(Education)).all(),
-            "professional_experience": session.exec(
-                select(ProfessionalExperience)
-            ).all(),
-            "languages": session.exec(select(Language)).all(),
-            "info": session.exec(select(Info)).all(),
-            "projects": session.exec(select(Project)).all(),
-        },
+        request, "index.html", context=build_portfolio_context(session)
+    )
+
+
+@app.get("/manage", response_class=HTMLResponse)
+def read_manage(request: Request, session: SessionDep):
+    # Entry management (ADR-0001): every entity's Modifier/Supprimer
+    # controls, relocated here from the old public "/".
+    return templates.TemplateResponse(
+        request, "manage.html", context=build_portfolio_context(session)
     )
 
 
@@ -225,7 +238,7 @@ def delete_info(item_id: int, session: SessionDep):
     item = get_info_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 def get_experience_or_404(item_id: int, session: Session) -> ProfessionalExperience:
@@ -263,15 +276,15 @@ def update_experience(
     experience.description = description
     session.add(experience)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 @app.post("/professional_experience/{item_id}/delete")
 def delete_experience(item_id: int, session: SessionDep):
-    item = session.get(ProfessionalExperience, item_id)
+    item = get_experience_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 def get_education_or_404(item_id: int, session: Session) -> Education:
@@ -309,7 +322,7 @@ def update_education(
     education.end_year = end_year
     session.add(education)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 @app.post("/education/{item_id}/delete")
@@ -317,7 +330,7 @@ def delete_education(item_id: int, session: SessionDep):
     item = get_education_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 def get_skill_or_404(item_id: int, session: Session) -> Skill:
@@ -349,7 +362,7 @@ def update_skill(
     skill.level = level
     session.add(skill)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 @app.post("/skills/{item_id}/delete")
@@ -357,7 +370,7 @@ def delete_skill(item_id: int, session: SessionDep):
     item = get_skill_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 def get_language_or_404(item_id: int, session: Session) -> Language:
@@ -389,7 +402,7 @@ def update_language(
     language.level = level
     session.add(language)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 @app.post("/languages/{item_id}/delete")
@@ -397,7 +410,7 @@ def delete_language(item_id: int, session: SessionDep):
     item = get_language_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 def get_project_or_404(item_id: int, session: Session) -> Project:
@@ -431,7 +444,7 @@ def update_project(
     project.link = link
     session.add(project)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
 
 
 @app.post("/projects/{item_id}/delete")
@@ -439,4 +452,4 @@ def delete_project(item_id: int, session: SessionDep):
     item = get_project_or_404(item_id, session)
     session.delete(item)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/manage", status_code=303)
