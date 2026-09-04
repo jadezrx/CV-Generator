@@ -269,3 +269,30 @@ Résultat :
 ## Constat
 
 Aucun skill ne s'est chargé — juste l'explication technique de /manage.
+
+# Étape 3b — élagage
+
+Élagage intentionnel de `.claude/skills/post-implement-check/SKILL.md` (commit `161b22b`), avant le test suivant. 4 lignes retirées, réparties en 3 catégories :
+
+## No-ops testés (2 lignes)
+
+- `1. Confirm a local commit exists for the finished work (`git log -1`, working tree clean for the relevant files).`
+- `5. Report one line: what got pushed, what got closed, or what is waiting on confirmation and why.`
+
+Ces deux étapes ont été exercées sans effet observable distinct lors du Test 1 ci-dessus : la vérification du commit local (étape 1) et le rapport final en une ligne (étape 5) décrivent des comportements que l'agent effectue de toute façon en pratiquant les étapes 2-4 (vérifier `git status`/`git log` avant d'agir, puis rendre compte du résultat) — les retirer du texte du skill ne change pas ce que l'agent fait, seulement ce qui est épelé explicitement.
+
+## Règle au sujet disparu (1 ligne)
+
+- `... or destructive database migrations.` (dans la liste de référence "what counts as sensitive")
+
+Ce projet n'a aucun outillage de migration : pas d'`alembic` dans le repo, aucune dépendance de migration dans `requirements.txt`/`requirements-dev.txt`. Le schéma est géré uniquement via `SQLModel.metadata.create_all(engine)` au démarrage (`main.py:114`), qui crée les tables manquantes sans jamais en modifier ou supprimer une existante. La catégorie "destructive database migrations" n'a donc aucun cas d'application possible dans ce projet.
+
+## Règle dupliquée (1 ligne)
+
+- `When in doubt, ask rather than assume it's routine.` (fin de la liste de référence "what counts as sensitive")
+
+Cette phrase répète, dans la section de référence, ce que l'étape "Exception" du corps du skill dit déjà explicitement : en cas de doute sur le caractère sensible d'un ticket, ne pas pousser/fermer automatiquement et attendre confirmation. La garder aux deux endroits n'ajoute pas de règle nouvelle, seulement une reformulation.
+
+## Ce qui n'a pas été touché
+
+Les 3 étapes opérationnelles restantes (`git status`/push, `gh issue view`/close, l'exception auth/routage public) et les 3 catégories sensibles restantes (authentification/autorisation, secrets/identifiants, routage public) sont inchangées. Voir `CLAUDE.md`, qui porte indépendamment sa propre clause d'exception pour #9/#10 et tout ticket touchant `/manage` — non affectée par cet élagage.
