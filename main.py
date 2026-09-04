@@ -1,5 +1,9 @@
+import os
+import secrets
+
 from fastapi import FastAPI, HTTPException, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Field, Session, SQLModel, create_engine, select
@@ -11,6 +15,42 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 sqlite_url = "sqlite:///./cv.db"
 engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+
+
+# HTTP Basic Auth guarding /manage and /form (ADR-0003). Credentials come
+# from the environment, never hardcoded, and are required at import time
+# so a misconfigured deployment fails fast instead of silently serving
+# management routes unprotected.
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+
+if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+    raise RuntimeError(
+        "ADMIN_USERNAME and ADMIN_PASSWORD must be set in the environment "
+        "to protect /manage and /form (ADR-0003)."
+    )
+
+security = HTTPBasic()
+
+
+def require_auth(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> str:
+    # HTTPBasic() itself returns 401 + WWW-Authenticate: Basic when no
+    # credentials are sent at all; this only needs to handle the
+    # wrong-credentials case.
+    valid_username = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
+    valid_password = secrets.compare_digest(credentials.password, ADMIN_PASSWORD)
+    if not (valid_username and valid_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+protected = [Depends(require_auth)]
 
 
 def get_session():
@@ -74,7 +114,7 @@ def on_startup():
     SQLModel.metadata.create_all(engine)
 
 
-@app.post("/skills")
+@app.post("/skills", dependencies=protected)
 def create_skill(
     software: str | None = Form(None),
     level: str | None = Form(None),
@@ -85,7 +125,7 @@ def create_skill(
     return RedirectResponse(url="/form", status_code=303)
 
 
-@app.post("/education")
+@app.post("/education", dependencies=protected)
 def create_education(
     school: str | None = Form(None),
     degree: str | None = Form(None),
@@ -107,7 +147,7 @@ def create_education(
     return RedirectResponse(url="/form", status_code=303)
 
 
-@app.post("/professional_experience")
+@app.post("/professional_experience", dependencies=protected)
 def create_professional_experience(
     company: str | None = Form(None),
     position: str | None = Form(None),
@@ -129,7 +169,7 @@ def create_professional_experience(
     return RedirectResponse(url="/form", status_code=303)
 
 
-@app.post("/languages")
+@app.post("/languages", dependencies=protected)
 def create_language(
     language_name: str | None = Form(None),
     level: str | None = Form(None),
@@ -153,7 +193,7 @@ def get_info_or_404(item_id: int, session: Session) -> Info:
     return info
 
 
-@app.post("/info")
+@app.post("/info", dependencies=protected)
 def upsert_info(
     first_name: str | None = Form(None),
     last_name: str | None = Form(None),
@@ -181,7 +221,7 @@ def upsert_info(
     return RedirectResponse(url="/form", status_code=303)
 
 
-@app.post("/projects")
+@app.post("/projects", dependencies=protected)
 def create_project(
     name_project: str | None = Form(None),
     description: str | None = Form(None),
@@ -193,7 +233,7 @@ def create_project(
     return RedirectResponse(url="/form", status_code=303)
 
 
-@app.get("/form", response_class=HTMLResponse)
+@app.get("/form", response_class=HTMLResponse, dependencies=protected)
 def read_form(request: Request, session: SessionDep):
     # Pre-fill the Info section with the current row's values (if any)
     # so a resubmission via the /info upsert doesn't null out fields
@@ -224,7 +264,7 @@ def read_home(request: Request, session: SessionDep):
     )
 
 
-@app.get("/manage", response_class=HTMLResponse)
+@app.get("/manage", response_class=HTMLResponse, dependencies=protected)
 def read_manage(request: Request, session: SessionDep):
     # Entry management (ADR-0001): every entity's Modifier/Supprimer
     # controls, relocated here from the old public "/".
@@ -233,7 +273,7 @@ def read_manage(request: Request, session: SessionDep):
     )
 
 
-@app.post("/info/{item_id}/delete")
+@app.post("/info/{item_id}/delete", dependencies=protected)
 def delete_info(item_id: int, session: SessionDep):
     item = get_info_or_404(item_id, session)
     session.delete(item)
@@ -248,7 +288,11 @@ def get_experience_or_404(item_id: int, session: Session) -> ProfessionalExperie
     return experience
 
 
-@app.get("/professional_experience/{item_id}/edit", response_class=HTMLResponse)
+@app.get(
+    "/professional_experience/{item_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=protected,
+)
 def edit_experience_form(item_id: int, request: Request, session: SessionDep):
     experience = get_experience_or_404(item_id, session)
     return templates.TemplateResponse(
@@ -258,7 +302,7 @@ def edit_experience_form(item_id: int, request: Request, session: SessionDep):
     )
 
 
-@app.post("/professional_experience/{item_id}/update")
+@app.post("/professional_experience/{item_id}/update", dependencies=protected)
 def update_experience(
     item_id: int,
     company: str | None = Form(None),
@@ -279,7 +323,7 @@ def update_experience(
     return RedirectResponse(url="/manage", status_code=303)
 
 
-@app.post("/professional_experience/{item_id}/delete")
+@app.post("/professional_experience/{item_id}/delete", dependencies=protected)
 def delete_experience(item_id: int, session: SessionDep):
     item = get_experience_or_404(item_id, session)
     session.delete(item)
@@ -294,7 +338,9 @@ def get_education_or_404(item_id: int, session: Session) -> Education:
     return education
 
 
-@app.get("/education/{item_id}/edit", response_class=HTMLResponse)
+@app.get(
+    "/education/{item_id}/edit", response_class=HTMLResponse, dependencies=protected
+)
 def edit_education_form(item_id: int, request: Request, session: SessionDep):
     education = get_education_or_404(item_id, session)
     return templates.TemplateResponse(
@@ -304,7 +350,7 @@ def edit_education_form(item_id: int, request: Request, session: SessionDep):
     )
 
 
-@app.post("/education/{item_id}/update")
+@app.post("/education/{item_id}/update", dependencies=protected)
 def update_education(
     item_id: int,
     school: str | None = Form(None),
@@ -325,7 +371,7 @@ def update_education(
     return RedirectResponse(url="/manage", status_code=303)
 
 
-@app.post("/education/{item_id}/delete")
+@app.post("/education/{item_id}/delete", dependencies=protected)
 def delete_education(item_id: int, session: SessionDep):
     item = get_education_or_404(item_id, session)
     session.delete(item)
@@ -340,7 +386,9 @@ def get_skill_or_404(item_id: int, session: Session) -> Skill:
     return skill
 
 
-@app.get("/skills/{item_id}/edit", response_class=HTMLResponse)
+@app.get(
+    "/skills/{item_id}/edit", response_class=HTMLResponse, dependencies=protected
+)
 def edit_skill_form(item_id: int, request: Request, session: SessionDep):
     skill = get_skill_or_404(item_id, session)
     return templates.TemplateResponse(
@@ -350,7 +398,7 @@ def edit_skill_form(item_id: int, request: Request, session: SessionDep):
     )
 
 
-@app.post("/skills/{item_id}/update")
+@app.post("/skills/{item_id}/update", dependencies=protected)
 def update_skill(
     item_id: int,
     software: str | None = Form(None),
@@ -365,7 +413,7 @@ def update_skill(
     return RedirectResponse(url="/manage", status_code=303)
 
 
-@app.post("/skills/{item_id}/delete")
+@app.post("/skills/{item_id}/delete", dependencies=protected)
 def delete_skill(item_id: int, session: SessionDep):
     item = get_skill_or_404(item_id, session)
     session.delete(item)
@@ -380,7 +428,9 @@ def get_language_or_404(item_id: int, session: Session) -> Language:
     return language
 
 
-@app.get("/languages/{item_id}/edit", response_class=HTMLResponse)
+@app.get(
+    "/languages/{item_id}/edit", response_class=HTMLResponse, dependencies=protected
+)
 def edit_language_form(item_id: int, request: Request, session: SessionDep):
     language = get_language_or_404(item_id, session)
     return templates.TemplateResponse(
@@ -390,7 +440,7 @@ def edit_language_form(item_id: int, request: Request, session: SessionDep):
     )
 
 
-@app.post("/languages/{item_id}/update")
+@app.post("/languages/{item_id}/update", dependencies=protected)
 def update_language(
     item_id: int,
     language_name: str | None = Form(None),
@@ -405,7 +455,7 @@ def update_language(
     return RedirectResponse(url="/manage", status_code=303)
 
 
-@app.post("/languages/{item_id}/delete")
+@app.post("/languages/{item_id}/delete", dependencies=protected)
 def delete_language(item_id: int, session: SessionDep):
     item = get_language_or_404(item_id, session)
     session.delete(item)
@@ -420,7 +470,9 @@ def get_project_or_404(item_id: int, session: Session) -> Project:
     return project
 
 
-@app.get("/projects/{item_id}/edit", response_class=HTMLResponse)
+@app.get(
+    "/projects/{item_id}/edit", response_class=HTMLResponse, dependencies=protected
+)
 def edit_project_form(item_id: int, request: Request, session: SessionDep):
     project = get_project_or_404(item_id, session)
     return templates.TemplateResponse(
@@ -430,7 +482,7 @@ def edit_project_form(item_id: int, request: Request, session: SessionDep):
     )
 
 
-@app.post("/projects/{item_id}/update")
+@app.post("/projects/{item_id}/update", dependencies=protected)
 def update_project(
     item_id: int,
     name_project: str | None = Form(None),
@@ -447,7 +499,7 @@ def update_project(
     return RedirectResponse(url="/manage", status_code=303)
 
 
-@app.post("/projects/{item_id}/delete")
+@app.post("/projects/{item_id}/delete", dependencies=protected)
 def delete_project(item_id: int, session: SessionDep):
     item = get_project_or_404(item_id, session)
     session.delete(item)

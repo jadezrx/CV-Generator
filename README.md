@@ -66,13 +66,26 @@ venv\Scripts\activate           # Windows
 pip install fastapi uvicorn sqlmodel jinja2 python-multipart
 ```
 
-### 4. Lancer l'application
+### 4. Configurer les identifiants d'administration
+
+`/manage` et `/form` (et toutes les routes de création/édition/suppression
+qu'ils exposent) sont protégés par HTTP Basic Auth (ADR-0003). Les
+identifiants sont lus depuis l'environnement au démarrage — l'application
+refuse de démarrer si l'une des deux variables est absente :
+
+```bash
+export ADMIN_USERNAME=admin          # Windows : set ADMIN_USERNAME=admin
+export ADMIN_PASSWORD=change-me      # Windows : set ADMIN_PASSWORD=change-me
+```
+
+### 5. Lancer l'application
 
 ```bash
 uvicorn main:app --reload
 ```
 
 L'application est accessible sur [http://localhost:8000](http://localhost:8000).
+`/` est public ; `/manage` et `/form` demandent les identifiants ci-dessus.
 
 ---
 
@@ -150,7 +163,6 @@ pip freeze > requirements.txt
 ## 🔮 Améliorations possibles
 
 - Ajout d'un système d'édition et suppression des entrées
-- Authentification pour protéger le formulaire
 - Export PDF du portfolio
 - Plusieurs thèmes CSS
 - Déploiement sur Railway, Render ou Fly.io

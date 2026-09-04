@@ -5,6 +5,15 @@ directory to sys.path when it loads it, letting `import main` succeed
 whether the suite is invoked as `pytest` or `python -m pytest`.
 """
 
+import os
+
+# main.py reads ADMIN_USERNAME/ADMIN_PASSWORD at import time (ADR-0003) and
+# refuses to start without them, so these must be set before `from main
+# import ...` runs below. Fixed, known values so tests can assert on both
+# the correct- and incorrect-credentials cases.
+os.environ["ADMIN_USERNAME"] = "test-admin"
+os.environ["ADMIN_PASSWORD"] = "test-password"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
@@ -47,6 +56,11 @@ def client_fixture(session: Session):
     # the app's startup event, which creates tables against the real
     # cv.db engine defined in main.py.
     client = TestClient(app)
+    # Authenticated by default (ADR-0003's Basic Auth gate on /manage and
+    # /form) so existing tests that exercise management routes don't each
+    # need to pass credentials. Auth-specific tests override this per
+    # request, e.g. `client.get("/manage", auth=None)` or `auth=(...)`.
+    client.auth = (os.environ["ADMIN_USERNAME"], os.environ["ADMIN_PASSWORD"])
     yield client
 
     app.dependency_overrides.clear()
