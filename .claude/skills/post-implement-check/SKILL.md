@@ -9,11 +9,9 @@ A ticket is not done when the code works — it is done when the commit is pushe
 
 ## Do this, in order
 
-1. Confirm a local commit exists for the finished work (`git log -1`, working tree clean for the relevant files).
-2. Run `git status`. If it reports the branch ahead of `origin/main`, run `git push`.
-3. Run `gh issue view <ticket-number>`. If it is still OPEN, close it: `gh issue close <ticket-number>`.
-4. Exception — do not push or close automatically if the ticket touches authentication, access control, public-facing routing, secrets/credentials, or anything the user has explicitly flagged as sensitive. In that case: commit locally only, report what's pending, and wait for explicit confirmation before push/close.
-5. Report one line: what got pushed, what got closed, or what is waiting on confirmation and why.
+1. Run `git status`. If it reports the branch ahead of `origin/main`, run `git push`.
+2. Run `gh issue view <ticket-number>`. If it is still OPEN, close it: `gh issue close <ticket-number>`.
+3. Exception — do not push or close automatically if the ticket touches authentication, access control, public-facing routing, secrets/credentials, or anything the user has explicitly flagged as sensitive. In that case: commit locally only, report what's pending, and wait for explicit confirmation before push/close.
 
 ## Done when
 
@@ -21,4 +19,4 @@ A ticket is not done when the code works — it is done when the commit is pushe
 
 ## Reference — what counts as sensitive
 
-Anything touching: authentication/authorization, secrets or environment credentials, public routing changes affecting what unauthenticated users can reach, or destructive database migrations. When in doubt, ask rather than assume it's routine.
+Anything touching: authentication/authorization, secrets or environment credentials, or public routing changes affecting what unauthenticated users can reach. When in doubt, ask rather than assume it's routine.
