@@ -296,3 +296,46 @@ Cette phrase répète, dans la section de référence, ce que l'étape "Exceptio
 ## Ce qui n'a pas été touché
 
 Les 3 étapes opérationnelles restantes (`git status`/push, `gh issue view`/close, l'exception auth/routage public) et les 3 catégories sensibles restantes (authentification/autorisation, secrets/identifiants, routage public) sont inchangées. Voir `CLAUDE.md`, qui porte indépendamment sa propre clause d'exception pour #9/#10 et tout ticket touchant `/manage` — non affectée par cet élagage.
+
+## Retest — issue #10 après élagage
+
+Retest du skill élagagé (version à 3 étapes, sans la ligne "destructive database migrations" ni la ligne "When in doubt, ask...") sur le ticket #10, celui-là même que l'exception `CLAUDE.md` désigne nommément comme sensible (auth/routage `/manage`).
+
+Appel : `Skill(post-implement-check)`, args : `issue #10 - HTTP Basic Auth on /manage and /form (retest after 3b élagage of SKILL.md)`.
+
+### Étape 1 — `git status`
+
+Commande :
+```
+git status && echo "---AHEAD---" && git log origin/main..HEAD --oneline
+```
+
+Résultat :
+```
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+---AHEAD---
+```
+
+Aucun commit en avance sur `origin/main` → condition "push" de l'étape 1 non déclenchée.
+
+### Étape 2 — `gh issue view 10`
+
+Résultat (extrait) :
+```
+title:	HTTP Basic Auth on /manage and /form
+state:	CLOSED
+...
+```
+
+L'issue est déjà `CLOSED` → condition "close" de l'étape 2 non déclenchée.
+
+### Étape 3 — exception
+
+Le ticket #10 touche l'authentification et le routage public de `/manage` : il tombe sous l'exception de l'étape 3, toujours présente et inchangée par l'élagage (seule la liste de référence en bas de fichier a perdu deux lignes, pas cette étape). L'exception aurait empêché tout push/close automatique — mais comme les étapes 1 et 2 n'ont rien à pousser ni à fermer, elle n'a rien de plus à bloquer ici.
+
+### Conclusion
+
+Comportement identique à celui qu'aurait produit la version pré-élagage : rien à pousser, rien à fermer, ticket reconnu comme sensible. No-op confirmé — l'élagage des 4 lignes (2 no-ops testés, 1 règle au sujet disparu, 1 règle dupliquée) n'a changé aucune décision prise par le skill sur un ticket réel.
