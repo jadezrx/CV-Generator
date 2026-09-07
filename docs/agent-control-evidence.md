@@ -339,3 +339,84 @@ Le ticket #10 touche l'authentification et le routage public de `/manage` : il t
 ### Conclusion
 
 Comportement identique à celui qu'aurait produit la version pré-élagage : rien à pousser, rien à fermer, ticket reconnu comme sensible. No-op confirmé — l'élagage des 4 lignes (2 no-ops testés, 1 règle au sujet disparu, 1 règle dupliquée) n'a changé aucune décision prise par le skill sur un ticket réel.
+
+# Étape 4 — enforcement
+
+Test du hook `PreToolUse` (`.claude/hooks/block-secrets.py`, déclaré dans `.claude/settings.json` sur les matchers `Bash|Write|Edit`) : au-delà de l'affichage d'un message `BLOCKED`, vérification séparée que l'effet réel (écriture disque, staging git) n'a pas eu lieu.
+
+## Test 1 — écriture d'un secret dans un fichier hors `main.py`
+
+Cible : `secret-test.txt` dans le répertoire scratchpad de session (hors du repo), pour ne pas dépendre d'un fichier suivi.
+
+Vérification préalable : le fichier n'existe pas.
+```
+$ ls secret-test.txt
+ls: cannot access '...secret-test.txt': No such file or directory
+```
+
+Appel : `Write(secret-test.txt, ...)` avec pour contenu la variable ADMIN_PASSWORD affectée à la valeur de test test-secret-123 (syntaxe clé=valeur entre guillemets).
+
+Résultat :
+```
+PreToolUse:Write hook error: [python "$CLAUDE_PROJECT_DIR/.claude/hooks/block-secrets.py"]: BLOCKED by block-secrets hook: content contains what looks like a secret: PASSWORD [...] test-secret-123...
+```
+(`[...]` remplace ici ` = "` du message d'origine — voir la note en fin de section sur le faux positif que la citation littérale a déclenché dans ce document même.)
+
+Vérification séparée après coup (le fichier ne doit pas exister si l'écriture a bien été empêchée, pas seulement signalée) :
+```
+$ ls secret-test.txt
+ls: cannot access '...secret-test.txt': No such file or directory
+(exit code: 2)
+```
+
+Constat : message `BLOCKED` affiché **et** aucun effet sur le disque — le hook a intercepté l'appel `Write` avant toute écriture, pas seulement produit un avertissement a posteriori.
+
+**Faux positif réel du hook, découvert en documentant sa propre preuve de test** : citer littéralement le secret de test (`ADMIN_PASSWORD` affecté à `test-secret-123` en syntaxe clé=valeur entre guillemets) dans ce fichier a été bloqué par `block-secrets.py` lui-même lors du `git commit`, puisque la citation reproduisait exactement le pattern qu'il détecte (staged diff scanné par la même regex). Corrigé en reformulant la citation en prose plutôt qu'en syntaxe clé=valeur ci-dessus — le hook reste inchangé, aucune exception ajoutée.
+
+## Test 2 — `git add -f .env`
+
+`.env` est listé dans `.gitignore` (ligne 152). Un `git add .env` simple serait donc déjà refusé par Git lui-même ("ignored by one of your .gitignore files"), indépendamment du hook — ce test aurait alors vérifié le comportement de Git, pas celui du hook. Utilisation de `git add -f .env` (force) pour isoler l'effet du hook de celui de `.gitignore` : `-f` neutralise le refus de Git, donc si la commande reste bloquée, c'est nécessairement le hook qui bloque.
+
+Préparation : création d'un `.env` factice directement via le shell (pas via l'outil `Write`, pour ne pas re-tester le Test 1) :
+```
+$ printf 'FAKE_TOKEN=not-a-real-value\n' > .env
+$ git status --porcelain
+?? .claude/hooks/
+?? .claude/settings.json
+```
+(`.env` n'apparaît pas — confirmé gitignoré, pas encore un candidat au staging.)
+
+Appel : `Bash(git add -f .env)`
+
+Résultat :
+```
+PreToolUse:Bash hook error: [python "$CLAUDE_PROJECT_DIR/.claude/hooks/block-secrets.py"]: BLOCKED by block-secrets hook: command references a .env file: cd "..."
+git add -f .env
+```
+
+Vérification séparée après coup (le fichier ne doit rien avoir de staged si la commande a vraiment échoué, pas juste affiché un avertissement) :
+```
+$ git status --porcelain
+?? .claude/hooks/
+?? .claude/settings.json
+
+$ git diff --cached --name-only
+(vide)
+```
+
+Constat : message `BLOCKED` affiché **et** rien de staged — `git status` ne montre pas `.env`, `git diff --cached --name-only` est vide. La commande `git add -f .env` n'a jamais tourné, malgré le `-f` qui aurait suffi à contourner `.gitignore`.
+
+## Nettoyage
+
+Suppression du `.env` factice créé pour le test 2 :
+```
+$ rm -f .env
+$ git status --porcelain
+?? .claude/hooks/
+?? .claude/settings.json
+```
+Dépôt revenu à son état initial (seuls les deux fichiers non suivis pré-existants restent).
+
+## Conclusion
+
+Dans les deux cas, le hook ne se contente pas d'afficher un avertissement : l'appel sous-jacent (`Write`, `git add`) n'a jamais été exécuté. La distinction est significative car un hook qui se contenterait de logger un message `BLOCKED` sans faire échouer l'appel laisserait l'effet indésirable se produire quand même — ce n'est pas le cas ici, vérifié séparément par inspection directe du système de fichiers et de l'état git après coup, pas seulement par la sortie du hook lui-même.
